@@ -88,7 +88,7 @@ pointwise_pvalues <- function(t0, t_coeff) {
 # ---------------------------------------------------------------------------
 set.seed(1L)
 cases <- list()
-for (p in c(2L, 7L, 40L)) {
+for (p in c(1L, 2L, 7L, 40L)) {
   for (n_perm in c(1L, 5L, 60L)) {
     x <- matrix(stats::rnorm(15L * p), 15L, p) +
       rep(seq(0, 1, length.out = p), each = 15L)
@@ -125,6 +125,14 @@ cases[["NaN in t0"]] <- list(t0_nan, t_u, FALSE)
 cases[["NaN in t_coeff"]] <- list(t0_u, t_nan, FALSE)
 cases[["Inf and -Inf"]] <- list(t0_u, t_inf, FALSE)
 cases[["near overflow"]] <- list(t0_u * 1e308, t_u * 1e308, FALSE)
+# observed sums just beyond the double range: sum() gives Inf there, while
+# rowSums() rounds the same total down to the largest double
+t0_big <- c(.Machine$double.xmax, 2^964, t0_u[1:4])
+cases[["sum beyond the double range"]] <- list(
+  t0_big,
+  rbind(t0_big, matrix(stats::runif(19L * 6L), 19L, 6L)),
+  FALSE
+)
 cases[["all zero"]] <- list(rep(0, 12L), matrix(0, 50L, 12L), FALSE)
 cases[["all tied"]] <- list(rep(0.5, 12L), matrix(0.5, 50L, 12L), FALSE)
 
@@ -205,9 +213,51 @@ expect_identical(
 )
 
 # ---------------------------------------------------------------------------
-# With mirai daemons the IWT uses the R computation, with the same results
+# NaN statistics at points that have a p-value (only in direct calls: the tests
+# give such points an NA p-value) are dropped from the TWT set statistics, as
+# na.rm = TRUE drops them
 # ---------------------------------------------------------------------------
 pval_u <- pointwise_pvalues(t0_u, t_u)
+for (agg in c("integral", "max")) {
+  expect_same(
+    fdatest:::p_adjust_twt(pval_u, 12L, t0_nan, t_nan, agg),
+    suppressWarnings(twt_reference(pval_u, 12L, t0_nan, t_nan, agg)),
+    paste("TWT, NaN at points with a p-value,", agg)
+  )
+}
+
+# ---------------------------------------------------------------------------
+# Permuted statistics that are not numbers (as the error values of failed
+# mirai tasks, bound into a character matrix) are an error, not NA
+# ---------------------------------------------------------------------------
+t_chr <- t_u
+storage.mode(t_chr) <- "character"
+t_chr[2L, 3L] <- "error"
+expect_error(fdatest:::p_adjust_global("integral", t0_u, t_chr, 12L))
+expect_error(fdatest:::p_adjust_twt(pval_u, 12L, t0_u, t_chr, "integral"))
+expect_error(
+  fdatest:::p_adjust_iwt(12L, pval_u, t0_u, t_chr, 50L, FALSE, "integral")
+)
+# no permuted statistics at all (n_perm = 0)
+expect_error(
+  fdatest:::p_adjust_global("integral", t0_u, NULL, 12L),
+  pattern = "n_perm"
+)
+
+# ---------------------------------------------------------------------------
+# recycle is read as the R code reads it: 0 and 1 work, NA fails
+# ---------------------------------------------------------------------------
+expect_identical(
+  fdatest:::p_adjust_iwt(12L, pval_u, t0_u, t_u, 50L, 1, "integral"),
+  fdatest:::p_adjust_iwt(12L, pval_u, t0_u, t_u, 50L, TRUE, "integral")
+)
+expect_error(
+  fdatest:::p_adjust_iwt(12L, pval_u, t0_u, t_u, 50L, NA, "integral")
+)
+
+# ---------------------------------------------------------------------------
+# With mirai daemons the IWT uses the R computation, with the same results
+# ---------------------------------------------------------------------------
 res_cpp <- fdatest:::p_adjust_iwt(
   12L,
   pval_u,
@@ -227,7 +277,31 @@ res_mirai <- fdatest:::p_adjust_iwt(
   FALSE,
   "integral"
 )
+# a single permutation given as a vector, with and without daemons
+res_row_mirai <- fdatest:::p_adjust_iwt(
+  12L,
+  pval_row,
+  t0_u,
+  as.vector(t_row),
+  1L,
+  TRUE,
+  "integral"
+)
 mirai::daemons(0L)
 expect_same(res_cpp, res_mirai, "mirai")
+res_row <- fdatest:::p_adjust_iwt(
+  12L,
+  pval_row,
+  t0_u,
+  as.vector(t_row),
+  1L,
+  TRUE,
+  "integral"
+)
+expect_identical(
+  res_row,
+  fdatest:::p_adjust_iwt(12L, pval_row, t0_u, t_row, 1L, TRUE, "integral")
+)
+expect_same(res_row, res_row_mirai, "mirai, one permutation as a vector")
 
 set.seed(NULL)

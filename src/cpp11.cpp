@@ -13,7 +13,7 @@ extern "C" SEXP _fdatest_ldouble_digits_cpp() {
   END_CPP11
 }
 // adjust.cpp
-cpp11::writable::doubles_matrix<> iwt_pvalue_matrix_cpp(cpp11::doubles t0, cpp11::doubles_matrix<> t_coeff, double n_perm, bool recycle, bool use_max);
+SEXP iwt_pvalue_matrix_cpp(cpp11::doubles t0, cpp11::doubles_matrix<> t_coeff, double n_perm, bool recycle, bool use_max);
 extern "C" SEXP _fdatest_iwt_pvalue_matrix_cpp(SEXP t0, SEXP t_coeff, SEXP n_perm, SEXP recycle, SEXP use_max) {
   BEGIN_CPP11
     return cpp11::as_sexp(iwt_pvalue_matrix_cpp(cpp11::as_cpp<cpp11::decay_t<cpp11::doubles>>(t0), cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix<>>>(t_coeff), cpp11::as_cpp<cpp11::decay_t<double>>(n_perm), cpp11::as_cpp<cpp11::decay_t<bool>>(recycle), cpp11::as_cpp<cpp11::decay_t<bool>>(use_max)));

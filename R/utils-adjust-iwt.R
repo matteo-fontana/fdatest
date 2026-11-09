@@ -130,13 +130,18 @@ p_adjust_iwt <- function(
   recycle,
   aggregation_strategy
 ) {
-  if (p > 1L && !mirai::daemons_set()) {
+  # A single permutation can come as a vector (a slice of the ANOVA and
+  # linear-model arrays): both computations take it as a 1 x p matrix
+  t_coeff <- as_stat_matrix(t_coeff, p)
+
+  if (p > 1L && length(n_perm) == 1L && !mirai::daemons_set()) {
     # Same p-values as iwt_pvalue_matrix_r(), in O(p^2) per permutation
     matrice_pval_asymm <- iwt_pvalue_matrix_cpp(
       as.double(t0),
-      as_stat_matrix(t_coeff, p),
+      t_coeff,
       n_perm,
-      recycle,
+      # read as iwt_compute_row() reads it: 0 and 1 work, NA fails
+      if (recycle) TRUE else FALSE,
       aggregation_strategy == "max"
     )
     matrice_pval_asymm[p, ] <- pval[seq_len(p)]

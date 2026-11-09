@@ -35,7 +35,7 @@ Imports:
     patchwork,
     rlang
 LinkingTo: 
-    cpp11
+    cpp11 (>= 0.4.0)
 Suggests:
     tinysnapshot,
     tinytest

@@ -79,6 +79,17 @@ optimize_order <- function(x) {
 # adjustments expect: slices of the ANOVA and linear-model arrays drop to
 # vectors when there is a single permutation or a single grid point.
 as_stat_matrix <- function(t_coeff, p) {
+  if (is.null(t_coeff)) {
+    cli::cli_abort(
+      "There are no permuted test statistics: {.arg n_perm} must be at least 1."
+    )
+  }
+  if (!is.numeric(t_coeff) && !is.logical(t_coeff)) {
+    # e.g. the error values of failed mirai tasks, bound into t_coeff
+    cli::cli_abort(
+      "The permuted test statistics must be numeric, not {typeof(t_coeff)}."
+    )
+  }
   if (!is.matrix(t_coeff)) {
     t_coeff <- matrix(t_coeff, ncol = p)
   }

@@ -17,6 +17,8 @@
 
 #include <cpp11.hpp>
 
+#include "matrix.h"
+
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -239,7 +241,7 @@ int ldouble_digits_cpp() {
 // IWT p-value matrix for intervals of length 2 to p (rows 1 to p - 1); row p
 // (the pointwise p-values) is left NA for the caller to fill.
 [[cpp11::register]]
-cpp11::writable::doubles_matrix<> iwt_pvalue_matrix_cpp(
+SEXP iwt_pvalue_matrix_cpp(
     cpp11::doubles t0, cpp11::doubles_matrix<> t_coeff, double n_perm,
     bool recycle, bool use_max) {
   const int p = t0.size(), B = t_coeff.nrow();
@@ -263,8 +265,8 @@ cpp11::writable::doubles_matrix<> iwt_pvalue_matrix_cpp(
     }
   }
 
-  cpp11::writable::doubles_matrix<> out(p, p);
-  double* pm = REAL(out.data());
+  cpp11::sexp out = new_double_matrix(p, p);
+  double* pm = REAL(out);
   std::fill(pm, pm + (size_t)p * p, NA_REAL);
   for (int j = 0; j < p; ++j) {
     const int Lmax = recycle ? p : p - j;
@@ -326,13 +328,14 @@ cpp11::writable::doubles twt_adjust_cpp(cpp11::doubles pval, cpp11::doubles t0,
   if (m > 0) cb.push_back(m);
   const int U = (int)cb.size() - 1;
 
-  // sum over the sorted positions [lo, hi) in grid order, rounded as sum()
-  // (observed) or rowSums() (permuted)
+  // sum over the sorted positions [lo, hi) in grid order, dropping NaN and
+  // rounded as sum(..., na.rm = TRUE) (observed) or rowSums(..., na.rm = TRUE)
+  // (permuted)
   auto exact_sum = [&](const double* v, int lo, int hi, bool observed) {
     ldouble s = 0.0L;
     for (int k = 0; k < p; ++k) {
       const int r = rank[k];
-      if (r >= lo && r < hi) s += v[k];
+      if (r >= lo && r < hi && !ISNAN(v[k])) s += v[k];
     }
     return observed ? r_sum_round(s) : (double)s;
   };
