@@ -74,3 +74,16 @@ optimize_order <- function(x) {
   x_reordered[seq(2, n, by = 2)] <- x_half_2
   x_reordered
 }
+
+# Permuted statistics as a double matrix with p columns, as the C++
+# adjustments expect: slices of the ANOVA and linear-model arrays drop to
+# vectors when there is a single permutation or a single grid point.
+as_stat_matrix <- function(t_coeff, p) {
+  if (!is.matrix(t_coeff)) {
+    t_coeff <- matrix(t_coeff, ncol = p)
+  }
+  if (!is.double(t_coeff)) {
+    storage.mode(t_coeff) <- "double"
+  }
+  t_coeff
+}

@@ -5,6 +5,34 @@
 #include "cpp11/declarations.hpp"
 #include <R_ext/Visibility.h>
 
+// adjust.cpp
+int ldouble_digits_cpp();
+extern "C" SEXP _fdatest_ldouble_digits_cpp() {
+  BEGIN_CPP11
+    return cpp11::as_sexp(ldouble_digits_cpp());
+  END_CPP11
+}
+// adjust.cpp
+cpp11::writable::doubles_matrix<> iwt_pvalue_matrix_cpp(cpp11::doubles t0, cpp11::doubles_matrix<> t_coeff, double n_perm, bool recycle, bool use_max);
+extern "C" SEXP _fdatest_iwt_pvalue_matrix_cpp(SEXP t0, SEXP t_coeff, SEXP n_perm, SEXP recycle, SEXP use_max) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(iwt_pvalue_matrix_cpp(cpp11::as_cpp<cpp11::decay_t<cpp11::doubles>>(t0), cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix<>>>(t_coeff), cpp11::as_cpp<cpp11::decay_t<double>>(n_perm), cpp11::as_cpp<cpp11::decay_t<bool>>(recycle), cpp11::as_cpp<cpp11::decay_t<bool>>(use_max)));
+  END_CPP11
+}
+// adjust.cpp
+cpp11::writable::doubles twt_adjust_cpp(cpp11::doubles pval, cpp11::doubles t0, cpp11::doubles_matrix<> t_coeff, bool use_max);
+extern "C" SEXP _fdatest_twt_adjust_cpp(SEXP pval, SEXP t0, SEXP t_coeff, SEXP use_max) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(twt_adjust_cpp(cpp11::as_cpp<cpp11::decay_t<cpp11::doubles>>(pval), cpp11::as_cpp<cpp11::decay_t<cpp11::doubles>>(t0), cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix<>>>(t_coeff), cpp11::as_cpp<cpp11::decay_t<bool>>(use_max)));
+  END_CPP11
+}
+// adjust.cpp
+double global_pvalue_cpp(cpp11::doubles t0, cpp11::doubles_matrix<> t_coeff, bool use_max);
+extern "C" SEXP _fdatest_global_pvalue_cpp(SEXP t0, SEXP t_coeff, SEXP use_max) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(global_pvalue_cpp(cpp11::as_cpp<cpp11::decay_t<cpp11::doubles>>(t0), cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix<>>>(t_coeff), cpp11::as_cpp<cpp11::decay_t<bool>>(use_max)));
+  END_CPP11
+}
 // pval_correct.cpp
 cpp11::writable::doubles pval_correct_cpp(cpp11::doubles pval_matrix);
 extern "C" SEXP _fdatest_pval_correct_cpp(SEXP pval_matrix) {
@@ -15,7 +43,11 @@ extern "C" SEXP _fdatest_pval_correct_cpp(SEXP pval_matrix) {
 
 extern "C" {
 static const R_CallMethodDef CallEntries[] = {
-    {"_fdatest_pval_correct_cpp", (DL_FUNC) &_fdatest_pval_correct_cpp, 1},
+    {"_fdatest_global_pvalue_cpp",     (DL_FUNC) &_fdatest_global_pvalue_cpp,     3},
+    {"_fdatest_iwt_pvalue_matrix_cpp", (DL_FUNC) &_fdatest_iwt_pvalue_matrix_cpp, 5},
+    {"_fdatest_ldouble_digits_cpp",    (DL_FUNC) &_fdatest_ldouble_digits_cpp,    0},
+    {"_fdatest_pval_correct_cpp",      (DL_FUNC) &_fdatest_pval_correct_cpp,      1},
+    {"_fdatest_twt_adjust_cpp",        (DL_FUNC) &_fdatest_twt_adjust_cpp,        4},
     {NULL, NULL, 0}
 };
 }

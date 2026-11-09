@@ -70,7 +70,10 @@ iwt_compute_row_pair <- function(
   )
 }
 
-p_adjust_iwt <- function(
+# P-value matrix of the IWT computed in R, one row (interval length) at a time,
+# dispatched to mirai daemons when they are set. Row p holds the pointwise
+# p-values.
+iwt_pvalue_matrix_r <- function(
   p,
   pval,
   t0,
@@ -113,6 +116,40 @@ p_adjust_iwt <- function(
     i <- row_indices[k]
     js <- if (recycle) seq_len(p) else seq_len(i)
     matrice_pval_asymm[i, js] <- row_results[[k]]
+  }
+
+  matrice_pval_asymm
+}
+
+p_adjust_iwt <- function(
+  p,
+  pval,
+  t0,
+  t_coeff,
+  n_perm,
+  recycle,
+  aggregation_strategy
+) {
+  if (p > 1L && !mirai::daemons_set()) {
+    # Same p-values as iwt_pvalue_matrix_r(), in O(p^2) per permutation
+    matrice_pval_asymm <- iwt_pvalue_matrix_cpp(
+      as.double(t0),
+      as_stat_matrix(t_coeff, p),
+      n_perm,
+      recycle,
+      aggregation_strategy == "max"
+    )
+    matrice_pval_asymm[p, ] <- pval[seq_len(p)]
+  } else {
+    matrice_pval_asymm <- iwt_pvalue_matrix_r(
+      p = p,
+      pval = pval,
+      t0 = t0,
+      t_coeff = t_coeff,
+      n_perm = n_perm,
+      recycle = recycle,
+      aggregation_strategy = aggregation_strategy
+    )
   }
 
   corrected_pval_matrix <- pval_correct_cpp(matrice_pval_asymm)
