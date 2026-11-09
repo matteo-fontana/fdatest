@@ -98,3 +98,11 @@ as_stat_matrix <- function(t_coeff, p) {
   }
   t_coeff
 }
+
+# Whether the C++ permutation code can run n_perm permutations: a single number
+# from 1 to .Machine$integer.max. Other values (0, NA, several numbers) go to
+# the R code, which handles them, or fails on them, as before.
+is_cpp_perm_count <- function(n_perm) {
+  length(n_perm) == 1L &&
+    isTRUE(n_perm >= 1 && n_perm <= .Machine$integer.max)
+}

@@ -16,6 +16,14 @@ global_pvalue_cpp <- function(t0, t_coeff, use_max) {
   .Call(`_fdatest_global_pvalue_cpp`, t0, t_coeff, use_max)
 }
 
+os_permtest_cpp <- function(coeff, n_perm) {
+  .Call(`_fdatest_os_permtest_cpp`, coeff, n_perm)
+}
+
+ts_permtest_cpp <- function(coeff, n1, n_perm, alt, paired, standardize) {
+  .Call(`_fdatest_ts_permtest_cpp`, coeff, n1, n_perm, alt, paired, standardize)
+}
+
 pval_correct_cpp <- function(pval_matrix) {
   .Call(`_fdatest_pval_correct_cpp`, pval_matrix)
 }

@@ -110,30 +110,62 @@ ts_single_perm <- function(coeff, n1, alternative, paired, standardize) {
 # (iwt2, twt2, fdr2, pct2). Returns list(t0, t_coeff, pval).
 ts_permtest <- function(coeff, n1, n_perm, alternative, paired, standardize) {
   p <- ncol(coeff)
+  n2 <- nrow(coeff) - n1
 
-  t0 <- ts_pointwise_stat(coeff, n1, alternative, standardize)
+  # read as the R code reads them in if (): 0 and 1 work, NA fails
+  paired <- if (paired) TRUE else FALSE
+  standardize <- if (standardize) TRUE else FALSE
 
-  # Run permutations in parallel via mirai_map().
-  # Each task returns one row of t_coeff (length p).
-  perm_args <- list(
-    coeff = coeff,
-    n1 = n1,
-    alternative = alternative,
-    paired = paired,
-    standardize = standardize
-  )
+  # The C++ code needs a usable number of permutations (without permutations
+  # the R code returns no permuted statistics), two non-empty samples, for
+  # paired tests a second sample at least as large as the first (otherwise
+  # ts_single_perm() can index rows beyond the data), and finite data
+  use_cpp <- !mirai::daemons_set() &&
+    is_cpp_perm_count(n_perm) &&
+    n1 >= 1 &&
+    n2 >= 1 &&
+    (!paired || n2 >= n1) &&
+    all(is.finite(coeff))
 
-  if (mirai::daemons_set()) {
-    perm_tasks <- mirai::mirai_map(seq_len(n_perm), function(.x) {
-      rlang::inject(ts_single_perm(!!!perm_args))
-    })
-    perm_results <- perm_tasks[.progress]
+  if (use_cpp) {
+    # Same random numbers and statistics as ts_single_perm(), in C++
+    perms <- ts_permtest_cpp(
+      as_stat_matrix(coeff, p),
+      as.integer(n1),
+      as.integer(n_perm),
+      match(alternative, c("two.sided", "greater", "less")) - 1L,
+      paired,
+      standardize
+    )
+    t0 <- perms$t0
+    t_coeff <- perms$t_coeff
+    names(t0) <- colnames(coeff)
+    colnames(t_coeff) <- colnames(coeff)
   } else {
-    perm_results <- lapply(seq_len(n_perm), function(.x) {
-      rlang::inject(ts_single_perm(!!!perm_args))
-    })
+    t0 <- ts_pointwise_stat(coeff, n1, alternative, standardize)
+
+    # Run permutations in parallel via mirai_map().
+    # Each task returns one row of t_coeff (length p).
+    perm_args <- list(
+      coeff = coeff,
+      n1 = n1,
+      alternative = alternative,
+      paired = paired,
+      standardize = standardize
+    )
+
+    if (mirai::daemons_set()) {
+      perm_tasks <- mirai::mirai_map(seq_len(n_perm), function(.x) {
+        rlang::inject(ts_single_perm(!!!perm_args))
+      })
+      perm_results <- perm_tasks[.progress]
+    } else {
+      perm_results <- lapply(seq_len(n_perm), function(.x) {
+        rlang::inject(ts_single_perm(!!!perm_args))
+      })
+    }
+    t_coeff <- do.call(rbind, perm_results)
   }
-  t_coeff <- do.call(rbind, perm_results)
 
   pval <- colSums(
     t_coeff >= matrix(t0, nrow = n_perm, ncol = p, byrow = TRUE)

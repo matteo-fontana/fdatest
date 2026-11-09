@@ -58,23 +58,40 @@ os_permtest <- function(coeff, n_perm) {
   n <- nrow(coeff)
   p <- ncol(coeff)
 
-  t0 <- os_pointwise_stat(coeff)
-
-  # Run permutations in parallel via mirai_map().
-  # Each task returns one row of t_coeff (length p).
-  perm_args <- list(coeff = coeff, n = n)
-
-  if (mirai::daemons_set()) {
-    perm_tasks <- mirai::mirai_map(seq_len(n_perm), function(.x) {
-      rlang::inject(os_single_perm(!!!perm_args))
-    })
-    perm_results <- perm_tasks[.progress]
+  # The C++ code needs a usable number of permutations (without permutations
+  # the R code returns no permuted statistics), at least one curve and finite
+  # data
+  if (
+    !mirai::daemons_set() &&
+      is_cpp_perm_count(n_perm) &&
+      n >= 1 &&
+      all(is.finite(coeff))
+  ) {
+    # Same random numbers and statistics as os_single_perm(), in C++
+    perms <- os_permtest_cpp(as_stat_matrix(coeff, p), as.integer(n_perm))
+    t0 <- perms$t0
+    t_coeff <- perms$t_coeff
+    names(t0) <- colnames(coeff)
+    colnames(t_coeff) <- colnames(coeff)
   } else {
-    perm_results <- lapply(seq_len(n_perm), function(.x) {
-      rlang::inject(os_single_perm(!!!perm_args))
-    })
+    t0 <- os_pointwise_stat(coeff)
+
+    # Run permutations in parallel via mirai_map().
+    # Each task returns one row of t_coeff (length p).
+    perm_args <- list(coeff = coeff, n = n)
+
+    if (mirai::daemons_set()) {
+      perm_tasks <- mirai::mirai_map(seq_len(n_perm), function(.x) {
+        rlang::inject(os_single_perm(!!!perm_args))
+      })
+      perm_results <- perm_tasks[.progress]
+    } else {
+      perm_results <- lapply(seq_len(n_perm), function(.x) {
+        rlang::inject(os_single_perm(!!!perm_args))
+      })
+    }
+    t_coeff <- do.call(rbind, perm_results)
   }
-  t_coeff <- do.call(rbind, perm_results)
 
   pval <- colSums(
     t_coeff >= matrix(t0, nrow = n_perm, ncol = p, byrow = TRUE)

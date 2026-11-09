@@ -33,6 +33,20 @@ extern "C" SEXP _fdatest_global_pvalue_cpp(SEXP t0, SEXP t_coeff, SEXP use_max) 
     return cpp11::as_sexp(global_pvalue_cpp(cpp11::as_cpp<cpp11::decay_t<cpp11::doubles>>(t0), cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix<>>>(t_coeff), cpp11::as_cpp<cpp11::decay_t<bool>>(use_max)));
   END_CPP11
 }
+// permutation.cpp
+cpp11::writable::list os_permtest_cpp(cpp11::doubles_matrix<> coeff, int n_perm);
+extern "C" SEXP _fdatest_os_permtest_cpp(SEXP coeff, SEXP n_perm) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(os_permtest_cpp(cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix<>>>(coeff), cpp11::as_cpp<cpp11::decay_t<int>>(n_perm)));
+  END_CPP11
+}
+// permutation.cpp
+cpp11::writable::list ts_permtest_cpp(cpp11::doubles_matrix<> coeff, int n1, int n_perm, int alt, bool paired, bool standardize);
+extern "C" SEXP _fdatest_ts_permtest_cpp(SEXP coeff, SEXP n1, SEXP n_perm, SEXP alt, SEXP paired, SEXP standardize) {
+  BEGIN_CPP11
+    return cpp11::as_sexp(ts_permtest_cpp(cpp11::as_cpp<cpp11::decay_t<cpp11::doubles_matrix<>>>(coeff), cpp11::as_cpp<cpp11::decay_t<int>>(n1), cpp11::as_cpp<cpp11::decay_t<int>>(n_perm), cpp11::as_cpp<cpp11::decay_t<int>>(alt), cpp11::as_cpp<cpp11::decay_t<bool>>(paired), cpp11::as_cpp<cpp11::decay_t<bool>>(standardize)));
+  END_CPP11
+}
 // pval_correct.cpp
 cpp11::writable::doubles pval_correct_cpp(cpp11::doubles pval_matrix);
 extern "C" SEXP _fdatest_pval_correct_cpp(SEXP pval_matrix) {
@@ -46,7 +60,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_fdatest_global_pvalue_cpp",     (DL_FUNC) &_fdatest_global_pvalue_cpp,     3},
     {"_fdatest_iwt_pvalue_matrix_cpp", (DL_FUNC) &_fdatest_iwt_pvalue_matrix_cpp, 5},
     {"_fdatest_ldouble_digits_cpp",    (DL_FUNC) &_fdatest_ldouble_digits_cpp,    0},
+    {"_fdatest_os_permtest_cpp",       (DL_FUNC) &_fdatest_os_permtest_cpp,       2},
     {"_fdatest_pval_correct_cpp",      (DL_FUNC) &_fdatest_pval_correct_cpp,      1},
+    {"_fdatest_ts_permtest_cpp",       (DL_FUNC) &_fdatest_ts_permtest_cpp,       6},
     {"_fdatest_twt_adjust_cpp",        (DL_FUNC) &_fdatest_twt_adjust_cpp,        4},
     {NULL, NULL, 0}
 };
